@@ -68,7 +68,6 @@ async function getData() {
 
     // İnternet bağlantısını kontrol et
     const isOnline = await checkInternetConnection();
-    console.log("İnternet bağlantısı:", isOnline ? "var" : "yok");
 
     if (isOnline) {
       // İnternet varsa API'den al ve cache'e kaydet
