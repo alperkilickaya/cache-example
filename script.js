@@ -9,11 +9,23 @@ const output = document.getElementById("output");
 // İnternet bağlantısını kontrol et
 async function checkInternetConnection() {
   try {
-    const response = await fetch("https://www.google.com/favicon.ico", {
-      mode: "no-cors",
+    // navigator.onLine kontrolü
+    if (!navigator.onLine) {
+      return false;
+    }
+
+    // Çift kontrol için gerçek bir istek deneyelim
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 saniye timeout
+
+    const response = await fetch("https://jsonplaceholder.typicode.com", {
+      signal: controller.signal,
     });
-    return true;
+
+    clearTimeout(timeoutId);
+    return response.ok;
   } catch (error) {
+    console.log("Bağlantı kontrolü hatası:", error);
     return false;
   }
 }
@@ -56,6 +68,7 @@ async function getData() {
 
     // İnternet bağlantısını kontrol et
     const isOnline = await checkInternetConnection();
+    console.log("İnternet bağlantısı:", isOnline ? "var" : "yok");
 
     if (isOnline) {
       // İnternet varsa API'den al ve cache'e kaydet
