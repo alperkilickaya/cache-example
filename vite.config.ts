@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  base: "/cache_example/",
+  base: "/cache-example/",
   server: {
     open: true,
   },
