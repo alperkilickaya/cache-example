@@ -2,11 +2,22 @@
  * @jest-environment jsdom
  */
 
-const fs = require("fs");
-const path = require("path");
+import fs from "fs";
+import path from "path";
+import "@testing-library/jest-dom";
+
+interface MockCache {
+  put: jest.Mock;
+  match: jest.Mock;
+}
+
+interface MockCaches {
+  open: jest.Mock;
+  delete: jest.Mock;
+}
 
 describe("Cache API Tests", () => {
-  let mockCache;
+  let mockCache: MockCache;
 
   beforeEach(() => {
     // index.html dosyasını yükle
@@ -22,10 +33,13 @@ describe("Cache API Tests", () => {
       match: jest.fn(),
     };
 
-    global.caches = {
+    // Global cache tipini tanımla
+    const globalCaches: MockCaches = {
       open: jest.fn().mockResolvedValue(mockCache),
       delete: jest.fn().mockResolvedValue(true),
     };
+
+    global.caches = globalCaches as unknown as CacheStorage;
 
     // navigator.onLine mock
     Object.defineProperty(window.navigator, "onLine", {
@@ -34,7 +48,7 @@ describe("Cache API Tests", () => {
     });
 
     // Fetch API mock
-    global.fetch = jest.fn().mockImplementation((url) => {
+    global.fetch = jest.fn().mockImplementation((url: string) => {
       if (url === "https://jsonplaceholder.typicode.com") {
         return Promise.resolve({ ok: true });
       }
@@ -45,11 +59,11 @@ describe("Cache API Tests", () => {
         }),
         json: () => Promise.resolve({ id: 1, title: "Test Post" }),
       });
-    });
+    }) as jest.Mock;
 
-    // script.js'i yükle
+    // script.ts'i yükle
     jest.isolateModules(() => {
-      require("./script.js");
+      require("./script.ts");
     });
   });
 
@@ -59,8 +73,10 @@ describe("Cache API Tests", () => {
   });
 
   test("İnternet bağlantısı varken veri API'den alınmalı", async () => {
-    const fetchButton = document.getElementById("fetch-data");
-    const output = document.getElementById("output");
+    const fetchButton = document.getElementById(
+      "fetch-data"
+    ) as HTMLButtonElement;
+    const output = document.getElementById("output") as HTMLDivElement;
 
     await fetchButton.click();
 
@@ -73,8 +89,10 @@ describe("Cache API Tests", () => {
   });
 
   test("İnternet bağlantısı yokken cache'den veri alınmalı", async () => {
-    const fetchButton = document.getElementById("fetch-data");
-    const output = document.getElementById("output");
+    const fetchButton = document.getElementById(
+      "fetch-data"
+    ) as HTMLButtonElement;
+    const output = document.getElementById("output") as HTMLDivElement;
 
     // İnternet bağlantısını kapat
     Object.defineProperty(window.navigator, "onLine", {
@@ -97,8 +115,10 @@ describe("Cache API Tests", () => {
   });
 
   test("İnternet ve cache yokken hata mesajı gösterilmeli", async () => {
-    const fetchButton = document.getElementById("fetch-data");
-    const output = document.getElementById("output");
+    const fetchButton = document.getElementById(
+      "fetch-data"
+    ) as HTMLButtonElement;
+    const output = document.getElementById("output") as HTMLDivElement;
 
     // İnternet bağlantısını kapat
     Object.defineProperty(window.navigator, "onLine", {
@@ -120,8 +140,10 @@ describe("Cache API Tests", () => {
   });
 
   test("Önbellek temizleme işlemi başarılı olmalı", async () => {
-    const clearButton = document.getElementById("clear-cache");
-    const output = document.getElementById("output");
+    const clearButton = document.getElementById(
+      "clear-cache"
+    ) as HTMLButtonElement;
+    const output = document.getElementById("output") as HTMLDivElement;
 
     await clearButton.click();
 
@@ -130,11 +152,15 @@ describe("Cache API Tests", () => {
   });
 
   test("Önbellek temizleme işlemi başarısız olduğunda hata mesajı gösterilmeli", async () => {
-    const clearButton = document.getElementById("clear-cache");
-    const output = document.getElementById("output");
+    const clearButton = document.getElementById(
+      "clear-cache"
+    ) as HTMLButtonElement;
+    const output = document.getElementById("output") as HTMLDivElement;
 
     // Silme işleminin başarısız olduğunu simüle et
-    global.caches.delete.mockRejectedValue(new Error("Silme hatası"));
+    (global.caches.delete as jest.Mock).mockRejectedValue(
+      new Error("Silme hatası")
+    );
 
     await clearButton.click();
 
