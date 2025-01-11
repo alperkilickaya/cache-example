@@ -1,22 +1,32 @@
-const CACHE_NAME = "my-cache-v1"; // Önbellek ismi
-const API_URL = "https://jsonplaceholder.typicode.com/posts/1"; // API URL'i
+interface Post {
+  userId: number;
+  id: number;
+  title: string;
+  body: string;
+}
+
+interface DataResponse {
+  data: Post;
+  source: "API" | "Cache";
+}
+
+const CACHE_NAME = "my-cache-v1";
+const API_URL = "https://jsonplaceholder.typicode.com/posts/1";
 
 // DOM elementlerini seç
-const fetchButton = document.getElementById("fetch-data");
-const clearButton = document.getElementById("clear-cache");
-const output = document.getElementById("output");
+const fetchButton = document.getElementById("fetch-data") as HTMLButtonElement;
+const clearButton = document.getElementById("clear-cache") as HTMLButtonElement;
+const output = document.getElementById("output") as HTMLDivElement;
 
 // İnternet bağlantısını kontrol et
-async function checkInternetConnection() {
+async function checkInternetConnection(): Promise<boolean> {
   try {
-    // navigator.onLine kontrolü
     if (!navigator.onLine) {
       return false;
     }
 
-    // Çift kontrol için gerçek bir istek deneyelim
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 saniye timeout
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
 
     const response = await fetch("https://jsonplaceholder.typicode.com", {
       signal: controller.signal,
@@ -31,12 +41,12 @@ async function checkInternetConnection() {
 }
 
 // Veriyi API'den al ve cache'e kaydet
-async function fetchAndCacheData() {
+async function fetchAndCacheData(): Promise<DataResponse> {
   try {
     const response = await fetch(API_URL);
     const cache = await caches.open(CACHE_NAME);
     await cache.put(API_URL, response.clone());
-    const data = await response.json();
+    const data = (await response.json()) as Post;
     return { data, source: "API" };
   } catch (error) {
     throw new Error("Veri API'den alınamadı");
@@ -44,12 +54,12 @@ async function fetchAndCacheData() {
 }
 
 // Cache'den veri getir
-async function getCachedData() {
+async function getCachedData(): Promise<DataResponse | null> {
   try {
     const cache = await caches.open(CACHE_NAME);
     const cachedResponse = await cache.match(API_URL);
     if (cachedResponse) {
-      const data = await cachedResponse.json();
+      const data = (await cachedResponse.json()) as Post;
       return { data, source: "Cache" };
     }
     return null;
@@ -59,38 +69,34 @@ async function getCachedData() {
 }
 
 // Veriyi getir (internet durumuna göre API veya cache'den)
-async function getData() {
+async function getData(): Promise<void> {
   try {
     output.textContent = "Veri getiriliyor...";
 
-    // Önce cache'i kontrol et
     const cachedData = await getCachedData();
-
-    // İnternet bağlantısını kontrol et
     const isOnline = await checkInternetConnection();
 
     if (isOnline) {
-      // İnternet varsa API'den al ve cache'e kaydet
       const { data } = await fetchAndCacheData();
       output.textContent = `Veri API'den alındı ve önbelleğe kaydedildi: ${JSON.stringify(
         data
       )}`;
       console.log("Veri API'den alındı ve önbelleğe kaydedildi");
     } else if (cachedData) {
-      // İnternet yoksa ve cache'de veri varsa
       output.textContent = `İnternet bağlantısı yok! Veri önbellekten alındı: ${JSON.stringify(
         cachedData.data
       )}`;
       console.log("Veri önbellekten alındı (offline mod)");
     } else {
-      // Ne internet var ne de cache'de veri var
       output.textContent =
         "Veri alınamadı! İnternet bağlantısı yok ve önbellekte veri bulunamadı.";
       console.log("Veri alınamadı - Bağlantı yok ve önbellek boş");
     }
   } catch (error) {
-    output.textContent = `Hata: ${error.message}`;
-    console.error("Hata:", error);
+    if (error instanceof Error) {
+      output.textContent = `Hata: ${error.message}`;
+      console.error("Hata:", error);
+    }
   }
 }
 
