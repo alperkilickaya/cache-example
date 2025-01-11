@@ -7,10 +7,26 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - "**/*.md" # Markdown dosyalarındaki değişiklikleri yoksay
   workflow_dispatch:
 
 jobs:
+  # Eğer PR'da push varsa ve aynı commit ise, gereksiz çalıştırmayı önle
+  check-duplicate:
+    runs-on: ubuntu-latest
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+    steps:
+      - id: skip_check
+        uses: fkirc/skip-duplicate-actions@v5
+        with:
+          concurrent_skipping: "same_content"
+          skip_after_successful_duplicate: "true"
+
   security-scan:
+    needs: check-duplicate # Önce duplicate kontrolü yap
+    if: ${{ needs.check-duplicate.outputs.should_skip != 'true' }}
     name: Security Scan
     runs-on: ubuntu-latest
     steps:
