@@ -8,12 +8,14 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
-    name: Unit Test
+  test-and-scan:
+    name: Test and Security Scan
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -21,7 +23,17 @@ jobs:
           node-version: "18"
           cache: "npm"
 
+      - name: Cache node modules
+        uses: actions/cache@v3
+        id: npm-cache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
       - name: Install dependencies
+        if: steps.npm-cache.outputs.cache-hit != 'true'
         run: npm ci
 
       - name: Run tests with coverage
@@ -32,16 +44,6 @@ jobs:
         with:
           name: coverage-report
           path: coverage/
-
-  security-scan:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    needs: test
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
 
       - name: Gitleaks
         uses: gitleaks/gitleaks-action@v2
